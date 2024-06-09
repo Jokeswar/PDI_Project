@@ -1,3 +1,18 @@
+# # Import the necessary modules
+# from pyspark.sql import SparkSession
+# from pyspark.sql.functions import *
+
+# # Create a SparkSession
+# spark = SparkSession.builder \
+#    .appName("My App") \
+#    .getOrCreate()
+
+# rdd = spark.sparkContext.parallelize(range(1, 100))
+
+# print("THE SUM IS HERE: ", rdd.sum())
+# # Stop the SparkSession
+# spark.stop()
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import BinaryType
@@ -24,7 +39,7 @@ to_grayscale_udf = udf(to_grayscale, BinaryType())
 
 # Load your images into a DataFrame (example uses images stored in a directory)
 # Assuming the DataFrame has a binary column 'image' containing the image data
-images_df = spark.read.format("binaryFile").load("/spark_data/Figure_1.png").selectExpr("content as image")
+images_df = spark.read.format("binaryFile").load("hdfs:///user/spark/input/Figure_1.png").selectExpr("content as image")
 
 # Apply the grayscale UDF to the DataFrame
 grayscale_images_df = images_df.withColumn("grayscale_image", to_grayscale_udf("image"))

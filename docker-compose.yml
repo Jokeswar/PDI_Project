@@ -1,22 +1,105 @@
+version: '3'
+
 services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    environment:
+      - CLUSTER_NAME=test
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      - ./hadoop_data:/mnt/data
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_datanode_data_dir=file:///hadoop/dfs/data
+      - HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    ports:
+      - "9864:9864"
+    depends_on:
+      - namenode
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    environment:
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "8088:8088"
+    depends_on:
+      - namenode
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+    depends_on:
+      - resourcemanager
+
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: historyserver
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+    volumes:
+      - hadoop_historyserver:/hadoop/yarn/timeline
+    ports:
+      - "8188:8188"
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+      - nodemanager
+
   spark-master:
     image: jokeswar/spark:latest
     command: bin/spark-class org.apache.spark.deploy.master.Master
     volumes:
       - ./data:/spark_data
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
     ports:
-      - "9090:8080"
+      - "8080:8080"
       - "7077:7077"
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+      - nodemanager
+      - historyserver
 
   spark-worker-1:
     image: jokeswar/spark:latest
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     volumes:
-      - ./data:/spark_data
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
     depends_on:
       - spark-master
+    ports:
+      - "8081:8081"
     environment:
       SPARK_MODE: worker
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
       SPARK_MASTER_URL: spark://spark-master:7077
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  hadoop_historyserver:
