@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
@@ -93,6 +91,22 @@ services:
       - spark-master
     ports:
       - "8081:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-2:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"
     environment:
       SPARK_MODE: worker
       SPARK_WORKER_CORES: 2

@@ -1,54 +1,69 @@
-# # Import the necessary modules
-# from pyspark.sql import SparkSession
-# from pyspark.sql.functions import *
-
-# # Create a SparkSession
-# spark = SparkSession.builder \
-#    .appName("My App") \
-#    .getOrCreate()
-
-# rdd = spark.sparkContext.parallelize(range(1, 100))
-
-# print("THE SUM IS HERE: ", rdd.sum())
-# # Stop the SparkSession
-# spark.stop()
-
 from pyspark.sql import SparkSession
+import numpy as np
+import cv2
 from pyspark.sql.functions import udf
 from pyspark.sql.types import BinaryType
-import cv2
-import numpy as np
+from pyspark import SparkFiles
 
 # Initialize Spark session
-spark = SparkSession.builder.appName("PDIGrayscaleImage").getOrCreate()
+spark = SparkSession.builder.appName("PDI-Alb-Negru").getOrCreate()
 
-# Define a UDF to convert images to grayscale
+# HDFS configuration
+hdfs_url = "hdfs://namenode:9000"
+
+# Read image from HDFS
+image_path = f"{hdfs_url}/user/spark/input/Figure_1.png"
+spark.sparkContext.addFile(image_path)
+
+# Function to convert an image to grayscale
 def to_grayscale(image_bytes):
-    # Convert bytes to numpy array
     nparr = np.frombuffer(image_bytes, np.uint8)
-    # Decode image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    # Convert image to grayscale
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # Encode image back to bytes
     _, buffer = cv2.imencode('.png', gray_img)
     return buffer.tobytes()
 
-# Register the UDF with Spark
+# Function to merge blocks into a single image
+def merge_blocks(blocks):
+    block_imgs = [cv2.imdecode(np.frombuffer(block, np.uint8), cv2.IMREAD_GRAYSCALE) for block in blocks]
+    return cv2.vconcat(block_imgs)
+
+# Register UDF
 to_grayscale_udf = udf(to_grayscale, BinaryType())
 
-# Load your images into a DataFrame (example uses images stored in a directory)
-# Assuming the DataFrame has a binary column 'image' containing the image data
-images_df = spark.read.format("binaryFile").load("hdfs:///user/spark/input/Figure_1.png").selectExpr("content as image")
+# Read image as binary file
+with open(SparkFiles.get(image_path.split('/')[-1]), "rb") as f:
+    image_data = f.read()
 
-# Apply the grayscale UDF to the DataFrame
-grayscale_images_df = images_df.withColumn("grayscale_image", to_grayscale_udf("image"))
+# Split the image into blocks
+def split_image(image_data, num_splits):
+    nparr = np.frombuffer(image_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    height, width, _ = img.shape
+    block_height = height // num_splits
+    blocks = []
+    for i in range(num_splits):
+        start_row = i * block_height
+        end_row = (i + 1) * block_height if i != num_splits - 1 else height
+        block = img[start_row:end_row, :, :]
+        _, buffer = cv2.imencode('.png', block)
+        blocks.append(buffer.tobytes())
+    return blocks
 
-# Collect and save the results if necessary
-results = grayscale_images_df.collect()
-for row in results:
-    with open("/spark_data/grayscale_image.png", "wb") as f:
-        f.write(row["grayscale_image"])
+num_splits = 8  # Number of splits
+blocks = split_image(image_data, num_splits)
+
+# Create an RDD from the blocks and process each block
+rdd = spark.sparkContext.parallelize(blocks)
+grayscale_rdd = rdd.map(to_grayscale)
+
+# Collect and save the grayscale blocks to HDFS
+grayscale_blocks = grayscale_rdd.collect()
+merged_image = merge_blocks(grayscale_blocks)
+_, buffer = cv2.imencode('.png', merged_image)
+output_path = f"/spark_data/grayscale_image.png"
+with open(output_path, "wb") as f:
+   f.write(buffer.tobytes())
 
 # Stop the Spark session
 spark.stop()
