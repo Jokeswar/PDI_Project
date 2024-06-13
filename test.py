@@ -12,7 +12,7 @@ spark = SparkSession.builder.appName("PDI-Alb-Negru").getOrCreate()
 hdfs_url = "hdfs://namenode:9000"
 
 # Read image from HDFS
-image_path = f"{hdfs_url}/user/spark/input/Figure_1.png"
+image_path = f"{hdfs_url}/user/spark/input/sat_1.jpg"
 spark.sparkContext.addFile(image_path)
 
 # Function to convert an image to grayscale
@@ -50,11 +50,12 @@ def split_image(image_data, num_splits):
         blocks.append(buffer.tobytes())
     return blocks
 
-num_splits = 8  # Number of splits
+num_splits = 256  # Number of splits
 blocks = split_image(image_data, num_splits)
 
 # Create an RDD from the blocks and process each block
-rdd = spark.sparkContext.parallelize(blocks)
+rdd = spark.sparkContext.parallelize(blocks, numSlices=64)
+print(f"Number of partitions: {rdd.getNumPartitions()}")
 grayscale_rdd = rdd.map(to_grayscale)
 
 # Collect and save the grayscale blocks to HDFS
