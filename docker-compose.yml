@@ -94,7 +94,7 @@ services:
     environment:
       SPARK_MODE: worker
       SPARK_WORKER_CORES: 2
-      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_MEMORY: 3g
       SPARK_MASTER_URL: spark://spark-master:7077
 
   spark-worker-2:
@@ -110,7 +110,103 @@ services:
     environment:
       SPARK_MODE: worker
       SPARK_WORKER_CORES: 2
-      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_MEMORY: 3g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-3:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "8083:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 3g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-4:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "8084:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 3g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-5:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "8085:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 3g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-6:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "8086:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 3g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-7:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "8087:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 3g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-8:
+    image: jokeswar/spark:latest
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./core-site.xml:/opt/bitnami/spark/conf/core-site.xml
+      - ./hdfs-site.xml:/opt/bitnami/spark/conf/hdfs-site.xml
+    depends_on:
+      - spark-master
+    ports:
+      - "9088:8081"
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 3g
       SPARK_MASTER_URL: spark://spark-master:7077
 
 volumes:
